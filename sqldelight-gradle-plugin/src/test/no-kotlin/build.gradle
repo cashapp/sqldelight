@@ -1,5 +1,3 @@
-buildscript {
-  apply from: "${projectDir.absolutePath}/../buildscript.gradle"
+plugins {
+  id("com.squareup.sqldelight")
 }
-
-apply plugin: 'com.squareup.sqldelight'

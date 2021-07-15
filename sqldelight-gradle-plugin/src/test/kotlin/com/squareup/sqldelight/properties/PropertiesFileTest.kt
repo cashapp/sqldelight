@@ -18,6 +18,7 @@ class PropertiesFileTest {
 
     GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "generateMainDatabaseInterface", "--stacktrace")
       .build()
 
@@ -59,7 +60,6 @@ class PropertiesFileTest {
         |apply plugin: 'org.jetbrains.kotlin.multiplatform'
         |apply plugin: 'com.squareup.sqldelight'
         |apply plugin: 'com.android.library'
-        |apply from: "${"$"}{rootDir}/../../../../gradle/dependencies.gradle"
         |
         |repositories {
         |  maven {

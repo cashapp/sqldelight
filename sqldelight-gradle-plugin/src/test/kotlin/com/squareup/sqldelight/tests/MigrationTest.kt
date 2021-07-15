@@ -11,6 +11,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "verifyMainDatabaseMigration", "--stacktrace")
       .buildAndFail()
 
@@ -34,6 +35,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "verifyMainDatabaseMigration", "--stacktrace")
       .buildAndFail()
 
@@ -50,6 +52,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "build", "--stacktrace")
       .buildAndFail()
 
@@ -72,6 +75,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "check", "verifyMainDatabaseMigration", "--stacktrace")
       .build()
 
@@ -87,6 +91,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "check", "verifyMainDatabaseMigration", "--stacktrace")
       .build()
 
@@ -102,6 +107,7 @@ class MigrationTest {
 
     var output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "check", "verifyMainDatabaseAMigration", "--stacktrace")
       .build()
 
@@ -109,6 +115,7 @@ class MigrationTest {
 
     output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "check", "verifyMainDatabaseBMigration", "--stacktrace")
       .build()
 
@@ -120,6 +127,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "verifyMainDatabaseMigration", "--stacktrace")
       .build()
 
@@ -131,6 +139,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "verifyMainDatabaseMigration", "--stacktrace", "--debug")
       .build()
 
@@ -142,6 +151,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "verifyMainDatabaseMigration", "--stacktrace")
       .buildAndFail()
 
@@ -153,6 +163,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "verifyMainDatabaseMigration", "--stacktrace")
       .buildAndFail()
 
@@ -164,6 +175,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "generateSqlDelightInterface", "--stacktrace", "--debug")
       .buildAndFail()
 
@@ -175,6 +187,7 @@ class MigrationTest {
 
     val output = GradleRunner.create()
       .withProjectDir(fixtureRoot)
+      .withPluginClasspath()
       .withArguments("clean", "generateSqlDelightInterface", "--stacktrace", "--debug")
       .build()
 

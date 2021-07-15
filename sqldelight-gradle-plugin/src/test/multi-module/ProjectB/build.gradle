@@ -1,5 +1,7 @@
-apply plugin: 'kotlin'
-apply plugin: 'com.squareup.sqldelight'
+plugins {
+  id("kotlin")
+  id("com.squareup.sqldelight")
+}
 
 sqldelight {
   Database {

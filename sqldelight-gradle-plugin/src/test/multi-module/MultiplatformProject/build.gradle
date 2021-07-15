@@ -1,6 +1,8 @@
-apply plugin: 'org.jetbrains.kotlin.multiplatform'
-apply plugin: 'com.android.library'
-apply plugin: 'com.squareup.sqldelight'
+plugins {
+  id("org.jetbrains.kotlin.multiplatform")
+  id("com.android.library")
+  id("com.squareup.sqldelight")
+}
 
 sqldelight {
   CommonDb {
