@@ -24,7 +24,7 @@ class InterfaceGeneration {
     val result = FixtureCompiler.compileSql(
       """
       |CREATE TABLE test (
-      |  val INTEGER AS Boolean NOT NULL
+      |  val INTEGER AS kotlin.Boolean NOT NULL
       |);
       |
       |CREATE VIEW someView AS
@@ -68,11 +68,11 @@ class InterfaceGeneration {
     val result = FixtureCompiler.compileSql(
       """
       |CREATE TABLE test (
-      |  val INTEGER AS Boolean NOT NULL
+      |  val INTEGER AS kotlin.Boolean NOT NULL
       |);
       |
       |CREATE TABLE another_test (
-      |  val INTEGER AS Boolean NOT NULL
+      |  val INTEGER AS kotlin.Boolean NOT NULL
       |);
       |
       |CREATE VIEW someView AS

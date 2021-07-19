@@ -20,8 +20,8 @@ class MutatorQueryTypeTest {
     val file = FixtureCompiler.parseSql(
       """
       |CREATE TABLE data (
-      |  id INTEGER AS Int PRIMARY KEY,
-      |  value TEXT AS kotlin.collections.List<String>
+      |  id INTEGER AS kotlin.Int PRIMARY KEY,
+      |  value TEXT AS kotlin.collections.List<kotlin.String>
       |);
       |
       |insertData:
@@ -41,7 +41,7 @@ class MutatorQueryTypeTest {
       |  |INSERT INTO data
       |  |VALUES (?, ?)
       |  ""${'"'}.trimMargin(), 2) {
-      |    bindLong(1, id?.let { it.toLong() })
+      |    bindLong(1, id?.let { database.data_Adapter.idAdapter.encode(it) })
       |    bindString(2, value?.let { database.data_Adapter.valueAdapter.encode(it) })
       |  }
       |}
@@ -56,7 +56,7 @@ class MutatorQueryTypeTest {
       |  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
       |  packageName TEXT NOT NULL,
       |  className TEXT NOT NULL,
-      |  deprecated INTEGER AS Boolean NOT NULL DEFAULT 0,
+      |  deprecated INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
       |  link TEXT NOT NULL,
       |
       |  UNIQUE (packageName, className)
@@ -91,7 +91,7 @@ class MutatorQueryTypeTest {
       |  |WHERE packageName = ?
       |  |  AND className = ?
       |  ""${'"'}.trimMargin(), 4) {
-      |    bindLong(1, if (deprecated) 1L else 0L)
+      |    bindLong(1, database.itemAdapter.deprecatedAdapter.encode(deprecated))
       |    bindString(2, link)
       |    bindString(3, packageName)
       |    bindString(4, className)
@@ -105,8 +105,8 @@ class MutatorQueryTypeTest {
     val file = FixtureCompiler.parseSql(
       """
       |CREATE TABLE data (
-      |  id INTEGER AS Int PRIMARY KEY,
-      |  value TEXT AS kotlin.collections.List<String>
+      |  id INTEGER AS kotlin.Int PRIMARY KEY,
+      |  value TEXT AS kotlin.collections.List<kotlin.String>
       |);
       |
       |selectForId:
@@ -131,7 +131,7 @@ class MutatorQueryTypeTest {
       |  |INSERT INTO data
       |  |VALUES (?, ?)
       |  ""${'"'}.trimMargin(), 2) {
-      |    bindLong(1, id?.let { it.toLong() })
+      |    bindLong(1, id?.let { database.data_Adapter.idAdapter.encode(it) })
       |    bindString(2, value?.let { database.data_Adapter.valueAdapter.encode(it) })
       |  }
       |  notifyQueries(${mutator.id}, {database.dataQueries.selectForId})
@@ -154,8 +154,8 @@ class MutatorQueryTypeTest {
     val file = FixtureCompiler.parseSql(
       """
       |CREATE TABLE data (
-      |  id INTEGER AS Int PRIMARY KEY,
-      |  value TEXT AS kotlin.collections.List<String>
+      |  id INTEGER AS kotlin.Int PRIMARY KEY,
+      |  value TEXT AS kotlin.collections.List<kotlin.String>
       |);
       |
       |insertData:
@@ -175,7 +175,7 @@ class MutatorQueryTypeTest {
       |  |INSERT INTO data
       |  |VALUES (?, ?)
       |  ""${'"'}.trimMargin(), 2) {
-      |    bindLong(1, id?.let { it.toLong() })
+      |    bindLong(1, id?.let { database.data_Adapter.idAdapter.encode(it) })
       |    bindString(2, value?.let { database.data_Adapter.valueAdapter.encode(it) })
       |  }
       |  notifyQueries(${mutator.id}, {database.otherDataQueries.selectForId})
@@ -202,8 +202,8 @@ class MutatorQueryTypeTest {
     val file = FixtureCompiler.parseSql(
       """
       |CREATE TABLE data (
-      |  id INTEGER AS Int NOT NULL PRIMARY KEY,
-      |  value TEXT AS kotlin.collections.List<String>
+      |  id INTEGER AS kotlin.Int NOT NULL PRIMARY KEY,
+      |  value TEXT AS kotlin.collections.List<kotlin.String>
       |);
       |
       |selectForId:
@@ -228,7 +228,7 @@ class MutatorQueryTypeTest {
       |  |INSERT INTO data
       |  |VALUES (?, ?)
       |  ""${'"'}.trimMargin(), 2) {
-      |    bindLong(1, id?.let { it.toLong() })
+      |    bindLong(1, id?.let { database.data_Adapter.idAdapter.encode(it) })
       |    bindString(2, value?.let { database.data_Adapter.valueAdapter.encode(it) })
       |  }
       |}
@@ -240,8 +240,8 @@ class MutatorQueryTypeTest {
     val file = FixtureCompiler.parseSql(
       """
       |CREATE TABLE data (
-      |  id INTEGER AS Int PRIMARY KEY,
-      |  value TEXT AS kotlin.collections.List<String>
+      |  id INTEGER AS kotlin.Int PRIMARY KEY,
+      |  value TEXT AS kotlin.collections.List<kotlin.String>
       |);
       |
       |insertData:
@@ -261,7 +261,7 @@ class MutatorQueryTypeTest {
       |  |INSERT INTO data
       |  |VALUES (?, ?)
       |  ""${'"'}.trimMargin(), 2) {
-      |    bindLong(1, id?.let { it.toLong() })
+      |    bindLong(1, id?.let { database.data_Adapter.idAdapter.encode(it) })
       |    bindString(2, value?.let { database.data_Adapter.valueAdapter.encode(it) })
       |  }
       |}
@@ -312,38 +312,6 @@ class MutatorQueryTypeTest {
       |  |)
       |  ""${'"'}.trimMargin(), 0)
       |  notifyQueries(${mutator.id}, {database.dataQueries.selectForId})
-      |}
-      |""".trimMargin()
-    )
-  }
-
-  @Test fun `non null boolean binds fine`() {
-    val file = FixtureCompiler.parseSql(
-      """
-      |CREATE TABLE data (
-      |  id INTEGER AS Int PRIMARY KEY,
-      |  value INTEGER AS Boolean NOT NULL
-      |);
-      |
-      |insertData:
-      |INSERT INTO data (value)
-      |VALUES (?);
-      """.trimMargin(),
-      tempFolder, fileName = "Data.sq"
-    )
-
-    val mutator = file.namedMutators.first()
-    val generator = MutatorQueryGenerator(mutator)
-
-    assertThat(generator.function().toString()).isEqualTo(
-      """
-      |public override fun insertData(value: kotlin.Boolean): kotlin.Unit {
-      |  driver.execute(${mutator.id}, ""${'"'}
-      |  |INSERT INTO data (value)
-      |  |VALUES (?)
-      |  ""${'"'}.trimMargin(), 1) {
-      |    bindLong(1, if (value) 1L else 0L)
-      |  }
       |}
       |""".trimMargin()
     )
@@ -672,7 +640,7 @@ class MutatorQueryTypeTest {
       |  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
       |  packageName TEXT NOT NULL,
       |  className TEXT NOT NULL,
-      |  deprecated INTEGER AS Boolean NOT NULL DEFAULT 0,
+      |  deprecated INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
       |  link TEXT NOT NULL,
       |
       |  UNIQUE (packageName, className)
@@ -708,7 +676,7 @@ class MutatorQueryTypeTest {
       |  driver.execute(${mutator.id}, ""${'"'}INSERT OR FAIL INTO item(packageName, className, deprecated, link) VALUES (?, ?, ?, ?)""${'"'}, 4) {
       |    bindString(1, packageName)
       |    bindString(2, className)
-      |    bindLong(3, if (deprecated) 1L else 0L)
+      |    bindLong(3, database.itemAdapter.deprecatedAdapter.encode(deprecated))
       |    bindString(4, link)
       |  }
       |  notifyQueries(${mutator.id}, {database.dataQueries.queryTerm})

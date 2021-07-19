@@ -19,13 +19,8 @@ import com.alecstrong.sql.psi.core.psi.Queryable
 import com.alecstrong.sql.psi.core.psi.SqlBindExpr
 import com.alecstrong.sql.psi.core.psi.SqlColumnDef
 import com.intellij.psi.util.PsiTreeUtil
-import com.squareup.kotlinpoet.BOOLEAN
-import com.squareup.kotlinpoet.BYTE
 import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FLOAT
-import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.SHORT
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.sqldelight.core.compiler.integration.adapterName
@@ -87,14 +82,14 @@ internal data class IntermediateType(
     val value = (column?.columnType as ColumnTypeMixin?)?.adapter()?.let { adapter ->
       val adapterName = PsiTreeUtil.getParentOfType(column, Queryable::class.java)!!.tableExposed().adapterName
       dialectType.encode(CodeBlock.of("$CUSTOM_DATABASE_NAME.$adapterName.%N.encode($name)", adapter))
-    } ?: when (javaType.copy(nullable = false)) {
-      FLOAT -> CodeBlock.of("$name.toDouble()")
-      BYTE -> CodeBlock.of("$name.toLong()")
-      SHORT -> CodeBlock.of("$name.toLong()")
-      INT -> CodeBlock.of("$name.toLong()")
-      BOOLEAN -> CodeBlock.of("if ($name) 1L else 0L")
-      else -> {
-        return dialectType.prepareStatementBinder(columnIndex, dialectType.encode(CodeBlock.of(this.name)))
+    } ?: run {
+      val decodedType = CodeBlock.of(name)
+      val encodedType = dialectType.encode(decodedType)
+
+      if (decodedType == encodedType) {
+        return dialectType.prepareStatementBinder(columnIndex, CodeBlock.of(this.name))
+      } else {
+        encodedType
       }
     }
 
@@ -126,18 +121,15 @@ internal data class IntermediateType(
       } else {
         CodeBlock.of("$CUSTOM_DATABASE_NAME.$adapterName.%N.decode(%L)", adapter, dialectType.decode(cursorGetter))
       }
-    } ?: when (javaType) {
-      FLOAT -> CodeBlock.of("$cursorGetter.toFloat()")
-      FLOAT.copy(nullable = true) -> CodeBlock.of("$cursorGetter?.toFloat()")
-      BYTE -> CodeBlock.of("$cursorGetter.toByte()")
-      BYTE.copy(nullable = true) -> CodeBlock.of("$cursorGetter?.toByte()")
-      SHORT -> CodeBlock.of("$cursorGetter.toShort()")
-      SHORT.copy(nullable = true) -> CodeBlock.of("$cursorGetter?.toShort()")
-      INT -> CodeBlock.of("$cursorGetter.toInt()")
-      INT.copy(nullable = true) -> CodeBlock.of("$cursorGetter?.toInt()")
-      BOOLEAN -> CodeBlock.of("$cursorGetter == 1L")
-      BOOLEAN.copy(nullable = true) -> CodeBlock.of("$cursorGetter?.let { it == 1L }")
-      else -> cursorGetter
+    } ?: run {
+      val encodedType = cursorGetter
+      val decodedType = dialectType.decode(encodedType)
+
+      if (javaType.isNullable && encodedType != decodedType) {
+        CodeBlock.of("%L?.let { %L }", cursorGetter, dialectType.decode(CodeBlock.of("it")))
+      } else {
+        decodedType
+      }
     }
   }
 }

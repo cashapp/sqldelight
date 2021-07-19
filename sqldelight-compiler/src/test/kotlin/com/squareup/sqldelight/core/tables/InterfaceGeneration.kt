@@ -25,6 +25,7 @@ class InterfaceGeneration {
       |import com.sample.SomeAnnotation;
       |import com.sample.SomeOtherAnnotation;
       |import java.util.List;
+      |import kotlin.Int;
       |
       |CREATE TABLE test (
       |  annotated INTEGER AS @SomeAnnotation(
@@ -47,8 +48,10 @@ class InterfaceGeneration {
       |
       |import com.sample.SomeAnnotation
       |import com.sample.SomeOtherAnnotation
+      |import com.squareup.sqldelight.ColumnAdapter
       |import java.util.List
       |import kotlin.Int
+      |import kotlin.Long
       |import kotlin.String
       |
       |public data class Test(
@@ -60,6 +63,10 @@ class InterfaceGeneration {
       |  |  annotated: ${"$"}annotated
       |  |]
       |  ""${'"'}.trimMargin()
+      |
+      |  public class Adapter(
+      |    public val annotatedAdapter: ColumnAdapter<Int, Long>
+      |  )
       |}
       |""".trimMargin()
     )
@@ -99,53 +106,6 @@ class InterfaceGeneration {
       |  |  get_cheese: ${"$"}get_cheese
       |  |  isle: ${"$"}isle
       |  |  stuff: ${"$"}stuff
-      |  |]
-      |  ""${'"'}.trimMargin()
-      |}
-      |""".trimMargin()
-    )
-  }
-
-  @Test fun `kotlin types are inferred properly`() {
-    val result = FixtureCompiler.parseSql(
-      """
-      |CREATE TABLE test (
-      |  intValue INTEGER AS Int NOT NULL,
-      |  intValue2 INTEGER AS Integer NOT NULL,
-      |  booleanValue INTEGER AS Boolean NOT NULL,
-      |  shortValue INTEGER AS Short NOT NULL,
-      |  longValue INTEGER AS Long NOT NULL,
-      |  floatValue REAL AS Float NOT NULL,
-      |  doubleValue REAL AS Double NOT NULL,
-      |  blobValue BLOB AS ByteArray NOT NULL
-      |);
-      |""".trimMargin(),
-      tempFolder
-    )
-
-    val generator = TableInterfaceGenerator(result.sqliteStatements().first().statement.createTableStmt!!.tableExposed())
-    assertThat(generator.kotlinImplementationSpec().toString()).isEqualTo(
-      """
-      |public data class Test(
-      |  public val intValue: kotlin.Int,
-      |  public val intValue2: kotlin.Int,
-      |  public val booleanValue: kotlin.Boolean,
-      |  public val shortValue: kotlin.Short,
-      |  public val longValue: kotlin.Long,
-      |  public val floatValue: kotlin.Float,
-      |  public val doubleValue: kotlin.Double,
-      |  public val blobValue: kotlin.ByteArray
-      |) {
-      |  public override fun toString(): kotlin.String = ""${'"'}
-      |  |Test [
-      |  |  intValue: ${"$"}intValue
-      |  |  intValue2: ${"$"}intValue2
-      |  |  booleanValue: ${"$"}booleanValue
-      |  |  shortValue: ${"$"}shortValue
-      |  |  longValue: ${"$"}longValue
-      |  |  floatValue: ${"$"}floatValue
-      |  |  doubleValue: ${"$"}doubleValue
-      |  |  blobValue: ${"$"}{blobValue.kotlin.collections.contentToString()}
       |  |]
       |  ""${'"'}.trimMargin()
       |}

@@ -1,0 +1,12 @@
+apply plugin: 'org.jetbrains.kotlin.jvm'
+
+archivesBaseName = 'sqldelight-primitive-adapters'
+
+dependencies {
+    api project(':runtime')
+
+    testImplementation deps.junit
+    testImplementation deps.truth
+}
+
+apply from: "$rootDir/gradle/gradle-mvn-push.gradle"

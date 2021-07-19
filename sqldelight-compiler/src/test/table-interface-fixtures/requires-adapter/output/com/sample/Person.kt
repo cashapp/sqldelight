@@ -31,6 +31,8 @@ public data class Person(
   """.trimMargin()
 
   public class Adapter(
-    public val friendsAdapter: ColumnAdapter<List<Person>, ByteArray>
+    public val is_coolAdapter: ColumnAdapter<Boolean, Long>,
+    public val friendsAdapter: ColumnAdapter<List<Person>, ByteArray>,
+    public val shhh_its_secretAdapter: ColumnAdapter<String, String>
   )
 }

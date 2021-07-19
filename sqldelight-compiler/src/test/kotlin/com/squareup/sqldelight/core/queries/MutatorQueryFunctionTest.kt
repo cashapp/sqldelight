@@ -352,6 +352,7 @@ class MutatorQueryFunctionTest {
   @Test fun `bind parameters on custom types`() {
     val file = FixtureCompiler.parseSql(
       """
+      |import kotlin.String;
       |import kotlin.collections.List;
       |
       |CREATE TABLE paymentHistoryConfig (
