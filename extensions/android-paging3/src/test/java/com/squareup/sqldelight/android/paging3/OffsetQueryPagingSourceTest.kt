@@ -20,6 +20,7 @@ import androidx.paging.PagingSource.LoadResult
 import com.squareup.sqldelight.Query
 import com.squareup.sqldelight.Transacter
 import com.squareup.sqldelight.TransacterImpl
+import com.squareup.sqldelight.db.SqlCursor
 import com.squareup.sqldelight.db.SqlDriver
 import com.squareup.sqldelight.sqlite.driver.JdbcSqliteDriver
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -266,7 +267,7 @@ class OffsetQueryPagingSourceTest {
     mutableListOf(),
     { cursor -> cursor.getLong(0)!! }
   ) {
-    override fun execute() = driver.executeQuery(1, "SELECT value FROM testTable LIMIT ? OFFSET ?", 2) {
+    override fun <R> execute(mapper: (SqlCursor) -> R) = driver.executeQuery(1, "SELECT value FROM testTable LIMIT ? OFFSET ?", mapper, 2) {
       bindLong(1, limit)
       bindLong(2, offset)
     }

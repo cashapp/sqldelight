@@ -139,12 +139,13 @@ class AndroidSqliteDriver private constructor(
     binders: (SqlPreparedStatement.() -> Unit)?
   ) = execute(identifier, { AndroidPreparedStatement(database.compileStatement(sql)) }, binders, AndroidStatement::execute)
 
-  override fun executeQuery(
+  override fun <R> executeQuery(
     identifier: Int?,
     sql: String,
+    mapper: (SqlCursor) -> R,
     parameters: Int,
     binders: (SqlPreparedStatement.() -> Unit)?
-  ) = execute(identifier, { AndroidQuery(sql, database, parameters) }, binders, AndroidStatement::executeQuery)
+  ) = execute(identifier, { AndroidQuery(sql, database, parameters) }, binders) { executeQuery(mapper) }
 
   override fun close() {
     statements.evictAll()
@@ -184,7 +185,7 @@ class AndroidSqliteDriver private constructor(
 
 internal interface AndroidStatement : SqlPreparedStatement {
   fun execute()
-  fun executeQuery(): SqlCursor
+  fun <R> executeQuery(mapper: (SqlCursor) -> R): R
   fun close()
 }
 
@@ -207,7 +208,7 @@ private class AndroidPreparedStatement(
     if (value == null) statement.bindNull(index) else statement.bindString(index, value)
   }
 
-  override fun executeQuery() = throw UnsupportedOperationException()
+  override fun <R> executeQuery(mapper: (SqlCursor) -> R): R = throw UnsupportedOperationException()
 
   override fun execute() {
     statement.execute()
@@ -243,7 +244,10 @@ private class AndroidQuery(
 
   override fun execute() = throw UnsupportedOperationException()
 
-  override fun executeQuery() = AndroidCursor(database.query(this))
+  override fun <R> executeQuery(mapper: (SqlCursor) -> R): R {
+    return database.query(this)
+      .use { cursor -> mapper(AndroidCursor(cursor)) }
+  }
 
   override fun bindTo(statement: SupportSQLiteProgram) {
     for (action in binds.values) {
@@ -268,5 +272,4 @@ private class AndroidCursor(
   override fun getLong(index: Int) = if (cursor.isNull(index)) null else cursor.getLong(index)
   override fun getBytes(index: Int) = if (cursor.isNull(index)) null else cursor.getBlob(index)
   override fun getDouble(index: Int) = if (cursor.isNull(index)) null else cursor.getDouble(index)
-  override fun close() = cursor.close()
 }

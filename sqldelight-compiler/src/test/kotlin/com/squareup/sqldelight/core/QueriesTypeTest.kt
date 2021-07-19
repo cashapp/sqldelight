@@ -127,11 +127,12 @@ class QueriesTypeTest {
       |    public val id: Long,
       |    mapper: (SqlCursor) -> T
       |  ) : Query<T>(selectForId, mapper) {
-      |    public override fun execute(): SqlCursor = driver.executeQuery(${select.id}, ""${'"'}
+      |    public override fun <R> execute(mapper: (SqlCursor) -> R): R = driver.executeQuery(${select.id},
+      |        ""${'"'}
       |    |SELECT *
       |    |FROM data
       |    |WHERE id = ?
-      |    ""${'"'}.trimMargin(), 1) {
+      |    ""${'"'}.trimMargin(), mapper, 1) {
       |      bindLong(1, id)
       |    }
       |
@@ -259,11 +260,12 @@ class QueriesTypeTest {
       |    public val id: Long,
       |    mapper: (SqlCursor) -> T
       |  ) : Query<T>(selectForId, mapper) {
-      |    public override fun execute(): SqlCursor = driver.executeQuery(${select.id}, ""${'"'}
+      |    public override fun <R> execute(mapper: (SqlCursor) -> R): R = driver.executeQuery(${select.id},
+      |        ""${'"'}
       |    |SELECT *
       |    |FROM data
       |    |WHERE id = ?
-      |    ""${'"'}.trimMargin(), 1) {
+      |    ""${'"'}.trimMargin(), mapper, 1) {
       |      bindLong(1, id)
       |    }
       |
@@ -390,11 +392,12 @@ class QueriesTypeTest {
       |    public val search: String,
       |    mapper: (SqlCursor) -> T
       |  ) : Query<T>(selectOffsets, mapper) {
-      |    public override fun execute(): SqlCursor = driver.executeQuery(${offsets.id}, ""${'"'}
+      |    public override fun <R> execute(mapper: (SqlCursor) -> R): R = driver.executeQuery(${offsets.id},
+      |        ""${'"'}
       |    |SELECT id, offsets(search)
       |    |FROM search
       |    |WHERE search MATCH ?
-      |    ""${'"'}.trimMargin(), 1) {
+      |    ""${'"'}.trimMargin(), mapper, 1) {
       |      bindString(1, search)
       |    }
       |

@@ -14,14 +14,12 @@ import kotlin.test.AfterTest
 
 abstract class BaseConcurrencyTest {
   fun countRows(myDriver: SqlDriver = driver): Long {
-    val cur = myDriver.executeQuery(0, "SELECT count(*) FROM test", 0)
-    try {
-      cur.next()
-      val count = cur.getLong(0)
-      return count!!
-    } finally {
-      cur.close()
-    }
+    return myDriver.executeQuery(
+      0,
+      "SELECT count(*) FROM test",
+      { it.next(); it.getLong(0)!! },
+      0
+    )
   }
 
   private var _driver: SqlDriver? = null

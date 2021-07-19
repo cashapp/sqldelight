@@ -25,14 +25,23 @@ class JsSqlDriver(private val db: Database) : SqlDriver {
   private val statements = mutableMapOf<Int, Statement>()
   private var transaction: Transacter.Transaction? = null
 
-  override fun executeQuery(
+  override fun <R> executeQuery(
     identifier: Int?,
     sql: String,
+    mapper: (SqlCursor) -> R,
     parameters: Int,
-    binders: (SqlPreparedStatement.() -> Unit)?
-  ): SqlCursor = createOrGetStatement(identifier, sql).run {
-    bind(binders)
-    JsSqlCursor(this)
+    binders: (SqlPreparedStatement.() -> Unit)?,
+  ): R {
+    val cursor = createOrGetStatement(identifier, sql).run {
+      bind(binders)
+      JsSqlCursor(this)
+    }
+
+    return try {
+      mapper(cursor)
+    } finally {
+      cursor.close()
+    }
   }
 
   override fun execute(identifier: Int?, sql: String, parameters: Int, binders: (SqlPreparedStatement.() -> Unit)?) =
@@ -92,7 +101,7 @@ private class JsSqlCursor(private val statement: Statement) : SqlCursor {
     Int8Array(it.buffer).unsafeCast<ByteArray>()
   }
   override fun getDouble(index: Int): Double? = statement.get()[index]
-  override fun close() { statement.freemem() }
+  fun close() { statement.freemem() }
 }
 
 private class JsSqlPreparedStatement : SqlPreparedStatement {

@@ -41,6 +41,7 @@ import com.squareup.sqldelight.core.lang.CURSOR_NAME
 import com.squareup.sqldelight.core.lang.CURSOR_TYPE
 import com.squareup.sqldelight.core.lang.CUSTOM_DATABASE_NAME
 import com.squareup.sqldelight.core.lang.DRIVER_NAME
+import com.squareup.sqldelight.core.lang.EXECUTE_BLOCK_NAME
 import com.squareup.sqldelight.core.lang.EXECUTE_METHOD
 import com.squareup.sqldelight.core.lang.MAPPER_NAME
 import com.squareup.sqldelight.core.lang.QUERY_LIST_TYPE
@@ -193,7 +194,7 @@ class SelectQueryGenerator(private val query: NamedQuery) : QueryGenerator(query
     }
 
     // Assemble the actual mapper lambda:
-    // { resultSet ->
+    // { cursor ->
     //   mapper(
     //       resultSet.getLong(0),
     //       queryWrapper.tableAdapter.columnAdapter.decode(resultSet.getString(0))
@@ -281,9 +282,12 @@ class SelectQueryGenerator(private val query: NamedQuery) : QueryGenerator(query
     // Query<T>
     queryType.superclass(QUERY_TYPE.parameterizedBy(returnType))
 
+    val genericResultType = TypeVariableName("R")
     val createStatementFunction = FunSpec.builder(EXECUTE_METHOD)
       .addModifiers(OVERRIDE)
-      .returns(CURSOR_TYPE)
+      .addTypeVariable(genericResultType)
+      .addParameter(EXECUTE_BLOCK_NAME, LambdaTypeName.get(parameters = *arrayOf(CURSOR_TYPE), returnType = genericResultType))
+      .returns(genericResultType)
       .addCode(executeBlock())
 
     // For each bind argument the query has.

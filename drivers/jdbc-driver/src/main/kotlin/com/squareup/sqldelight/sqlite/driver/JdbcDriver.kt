@@ -113,20 +113,20 @@ abstract class JdbcDriver : SqlDriver, ConnectionManager {
     }
   }
 
-  override fun executeQuery(
+  override fun <R> executeQuery(
     identifier: Int?,
     sql: String,
+    mapper: (SqlCursor) -> R,
     parameters: Int,
     binders: (SqlPreparedStatement.() -> Unit)?
-  ): SqlCursor {
+  ): R {
     val (connection, onClose) = connectionAndClose()
     try {
       return SqliteJdbcPreparedStatement(connection.prepareStatement(sql))
         .apply { if (binders != null) this.binders() }
-        .executeQuery(onClose)
-    } catch (e: Exception) {
+        .executeQuery(mapper)
+    } finally {
       onClose()
-      throw e
     }
   }
 
@@ -181,19 +181,21 @@ private class SqliteJdbcPreparedStatement(
     }
   }
 
-  fun executeQuery(onClose: () -> Unit) =
-    SqliteJdbcCursor(preparedStatement, preparedStatement.executeQuery(), onClose)
+  fun <R> executeQuery(mapper: (SqlCursor) -> R): R {
+    try {
+      return preparedStatement.executeQuery()
+        .use { resultSet -> mapper(SqliteJdbcCursor(resultSet)) }
+    } finally {
+      preparedStatement.close()
+    }
+  }
 
   fun execute() {
     preparedStatement.execute()
   }
 }
 
-private class SqliteJdbcCursor(
-  private val preparedStatement: PreparedStatement,
-  private val resultSet: ResultSet,
-  private val onClose: () -> Unit
-) : SqlCursor {
+private class SqliteJdbcCursor(private val resultSet: ResultSet) : SqlCursor {
   override fun getString(index: Int) = resultSet.getString(index + 1)
   override fun getBytes(index: Int) = resultSet.getBytes(index + 1)
   override fun getLong(index: Int): Long? {
@@ -201,11 +203,6 @@ private class SqliteJdbcCursor(
   }
   override fun getDouble(index: Int): Double? {
     return resultSet.getDouble(index + 1).takeUnless { resultSet.wasNull() }
-  }
-  override fun close() {
-    resultSet.close()
-    preparedStatement.close()
-    onClose()
   }
   override fun next() = resultSet.next()
 }
