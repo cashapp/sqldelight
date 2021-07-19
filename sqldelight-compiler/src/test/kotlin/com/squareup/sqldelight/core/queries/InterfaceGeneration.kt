@@ -920,6 +920,49 @@ class InterfaceGeneration {
     )
   }
 
+  @Test fun `query does not return type of unrelated view`() {
+    val result = FixtureCompiler.compileSql("""
+      |CREATE VIEW first_song_in_album AS
+      |SELECT * FROM song WHERE track_number = 1;
+      |
+      |CREATE TABLE song(
+      |    title TEXT,
+      |    track_number INTEGER,
+      |    album_id INTEGER
+      |);
+      |
+      |selectSongsByAlbumId:
+      |SELECT * FROM song WHERE album_id = ?;
+    """.trimMargin(), temporaryFolder, fileName = "song.sq")
+    FixtureCompiler.compileSql("""
+    """.trimMargin(), temporaryFolder, fileName = "a.sq")
+
+    assertThat(result.errors).isEmpty()
+    val generatedInterface = result.compilerOutput.get(
+        File(result.outputDirectory, "com/example/SongQueries.kt")
+    )
+    assertThat(generatedInterface).isNotNull()
+    assertThat(generatedInterface.toString()).isEqualTo("""
+      |package com.example
+      |
+      |import com.squareup.sqldelight.Query
+      |import com.squareup.sqldelight.Transacter
+      |import kotlin.Any
+      |import kotlin.Long
+      |import kotlin.String
+      |
+      |interface SongQueries : Transacter {
+      |  fun <T : Any> selectSongsByAlbumId(album_id: Long?, mapper: (
+      |    title: String?,
+      |    track_number: Long?,
+      |    album_id: Long?
+      |  ) -> T): Query<T>
+      |
+      |  fun selectSongsByAlbumId(album_id: Long?): Query<Song>
+      |}
+      |""".trimMargin())
+  }
+
   private fun checkFixtureCompiles(fixtureRoot: String) {
     val result = FixtureCompiler.compileFixture(
       fixtureRoot = "src/test/query-interface-fixtures/$fixtureRoot",
