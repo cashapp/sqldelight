@@ -40,10 +40,9 @@ tasks.named('runIde') {
 
 tasks.named('runPluginVerifier') {
   ideVersions = [
-      "IC-2022.2.4", // AS: Flamingo | 2022.2.1
-      "IC-2022.3.1", // IC
-      "IC-2023.1",   // IC
-      "IC-2023.2",   // IC
+      "IC-2023.1.5",   // IC
+      "IC-2023.2.5",   // IC
+//      "IC-2023.3.2",   // IC TODO: requires fix in com.alecstrong.sql.psi.core.SqlCoreEnvironment
   ]
 
   def customFailureLevel = FailureLevel.ALL
@@ -81,7 +80,7 @@ dependencies {
   ksp libs.moshiCodegen
 
   implementation projects.sqldelightCompiler
-
+  
   implementation libs.sqliteJdbc
   implementation libs.bugsnag
   implementation libs.picnic
