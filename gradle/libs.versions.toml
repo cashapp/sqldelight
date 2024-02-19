@@ -13,6 +13,7 @@ ktlint = "1.2.1"
 agp = "8.4.1"
 compileSdk = "34"
 minSdk = "21"
+targetSdk = "34"
 sqlPsi = "0.4.9"
 testContainers = "1.19.8"
 
