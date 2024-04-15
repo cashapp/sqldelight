@@ -23,6 +23,7 @@
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.CONFLICT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.CONSTRAINT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.CREATE"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.CROSS"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.CURRENT_DATE"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.CURRENT_TIME"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.CURRENT_TIMESTAMP"
@@ -45,16 +46,21 @@
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.GROUP"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.HAVING"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ID"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.LEFT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.IF"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.IS"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.IGNORE"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.INDEX"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.INDEXED"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.INNER"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.INSERT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.INTO"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.JOIN"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.KEY"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.LIMIT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.LP"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.MINUS"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.NATURAL"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.NO"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.NOT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.NOTHING"
@@ -63,10 +69,12 @@
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ON"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.OR"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ORDER"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.OUTER"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.PLUS"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.PRIMARY"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.RENAME"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.REPLACE"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.RIGHT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ROLLBACK"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.RP"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.SELECT"
@@ -102,6 +110,7 @@ overrides ::= type_name
   | extension_stmt
   | create_index_stmt
   | select_stmt
+  | join_operator
 
 column_constraint ::= [ CONSTRAINT {identifier} ] (
   PRIMARY KEY [ ASC | DESC ] {conflict_clause} |
@@ -361,6 +370,13 @@ select_stmt ::= SELECT ( [ distinct_on_expr ] | [ DISTINCT | ALL ] ) {result_col
 compound_select_stmt ::= [ {with_clause} ] {select_stmt}  ( {compound_operator} {select_stmt} ) * [ ORDER BY {ordering_term} ( COMMA {ordering_term} ) * ] [ LIMIT {limiting_term} ] [ ( OFFSET | COMMA ) {limiting_term} ] [ FOR UPDATE [ 'SKIP' 'LOCKED' ] ] {
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlCompoundSelectStmtImpl"
   implements = "com.alecstrong.sql.psi.core.psi.SqlCompoundSelectStmt"
+  override = true
+}
+
+join_operator ::= ( COMMA
+                  | [ NATURAL ] [ ( {left_join_operator} | {right_join_operator} | {full_join_operator} ) [ OUTER ] | INNER | CROSS ] JOIN ) {
+  extends = "com.alecstrong.sql.psi.core.psi.impl.SqlJoinOperatorImpl"
+  implements = "com.alecstrong.sql.psi.core.psi.SqlJoinOperator"
   override = true
 }
 
