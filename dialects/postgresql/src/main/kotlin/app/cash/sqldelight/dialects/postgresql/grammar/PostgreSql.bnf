@@ -46,6 +46,7 @@
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.HAVING"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ID"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.IF"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.IS"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.IGNORE"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.INDEX"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.INSERT"
@@ -145,7 +146,8 @@ type_name ::= (
   date_data_type |
   boolean_data_type |
   json_data_type |
-  blob_data_type
+  blob_data_type |
+  tsvector_data_type
 ) [ '[]' ] {
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlTypeNameImpl"
   implements = "com.alecstrong.sql.psi.core.psi.SqlTypeName"
@@ -167,9 +169,16 @@ table_constraint ::= [ CONSTRAINT {identifier} ] (
   override = true
 }
 
-create_index_stmt ::= CREATE [ UNIQUE ] INDEX [ 'CONCURRENTLY' ] [ IF NOT EXISTS ] [ {database_name} DOT ] {index_name} ON {table_name} LP {indexed_column} ( COMMA {indexed_column} ) * RP [ WHERE <<expr '-1'>> ] {
+operator_class_stmt ::= {identifier} [ LP {identifier} EQ ( {identifier} | {numeric_literal} ) { RP ]
+storage_parameter ::= TRUE | FALSE | 'ON' | 'OFF' | {identifier} | {numeric_literal}
+storage_parameters ::= 'autosummarize' | 'buffering' | 'deduplicate_items' | 'fastupdate' | 'fillfactor' | 'gin_pending_list_limit' | 'pages_per_range'
+with_storage_parameter ::= WITH LP storage_parameters EQ ( storage_parameter ) ( COMMA storage_parameters EQ ( storage_parameter ) ) * RP
+index_method ::=  'BRIN' | 'BTREE' | 'GIN' | 'GIST' | 'HASH'
+
+create_index_stmt ::= CREATE [ UNIQUE ] INDEX [ 'CONCURRENTLY' ] [ IF NOT EXISTS ] [ {database_name} DOT ] {index_name} ON {table_name}
+ ( USING index_method LP {indexed_column} [ operator_class_stmt ] ( COMMA {indexed_column} [ operator_class_stmt ] ) * RP [ with_storage_parameter ] | LP {indexed_column} [ operator_class_stmt ] ( COMMA {indexed_column} [ operator_class_stmt ] ) * RP [ WHERE <<expr '-1'>> ] )  {
+  mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.CreateIndexMixin"
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlCreateIndexStmtImpl"
-  implements = "com.alecstrong.sql.psi.core.psi.SqlGeneratedClause"
   override = true
   pin = 6
 }
@@ -204,6 +213,8 @@ boolean_data_type ::= 'BOOLEAN' | 'BOOL'
 json_data_type ::= 'JSON' | 'JSONB'
 
 blob_data_type ::= 'BYTEA'
+
+tsvector_data_type ::= 'TSVECTOR'
 
 interval_expression ::= 'INTERVAL' string_literal
 
@@ -314,7 +325,9 @@ alter_table_drop_column ::= DROP [ COLUMN ] {column_name} {
   pin = 1
 }
 
-alter_table_add_constraint ::= ADD table_constraint
+alter_table_add_constraint ::= ADD table_constraint {
+    mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.AlterTableAddConstraintMixin"
+}
 
 type_clause ::= 'TYPE'
 
@@ -338,7 +351,7 @@ distinct_on_expr ::= DISTINCT ON LP {result_column} ( COMMA {result_column} ) * 
   implements = "com.alecstrong.sql.psi.core.psi.SqlCompositeElement"
 }
 
-select_stmt ::= SELECT ( [ distinct_on_expr ] | [ DISTINCT | ALL ] ) {result_column} ( COMMA {result_column} ) * [ FROM {join_clause} ] [ WHERE <<expr '-1'>> ] [{group_by}] [HAVING <<expr '-1'>>] | VALUES {values_expression} ( COMMA {values_expression} ) * {
+select_stmt ::= SELECT ( distinct_on_expr | [ DISTINCT | ALL ] ) {result_column} ( COMMA {result_column} ) * [ FROM {join_clause} ] [ WHERE <<expr '-1'>> ] [{group_by}] [HAVING <<expr '-1'>>] | VALUES {values_expression} ( COMMA {values_expression} ) * {
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlSelectStmtImpl"
   implements = "com.alecstrong.sql.psi.core.psi.SqlSelectStmt"
   override = true
@@ -351,7 +364,7 @@ compound_select_stmt ::= [ {with_clause} ] {select_stmt}  ( {compound_operator} 
   override = true
 }
 
-extension_expr ::= json_expression | boolean_literal | boolean_not_expression | window_function_expr {
+extension_expr ::= regex_match_operator_expression | match_operator_expression | array_agg_stmt| string_agg_stmt | json_expression | boolean_literal | boolean_not_expression | window_function_expr {
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlExtensionExprImpl"
   implements = "com.alecstrong.sql.psi.core.psi.SqlExtensionExpr"
   override = true
@@ -365,12 +378,26 @@ boolean_not_expression ::= NOT (boolean_literal | {column_name})
 
 boolean_literal ::= TRUE | FALSE
 
-json_expression ::= {column_name} ( jsona_binary_operator | jsonb_binary_operator ) <<expr '-1'>> {
+json_expression ::= {column_expr} ( jsona_binary_operator | jsonb_binary_operator | jsonb_boolean_operator ) <<expr '-1'>> {
   mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.JsonExpressionMixin"
   pin = 2
 }
-jsona_binary_operator ::= '->' | '->>' | '#>'
-jsonb_binary_operator ::= '@>' | '<@' | '?|' | '?&' | '?' | '#-'
+jsona_binary_operator ::= '->' | '->>' | '#>' | '#>>'
+jsonb_binary_operator ::= '#-'
+jsonb_boolean_operator ::= '@>' | '<@' | '@?' | '??|' | '??&' | '??'
+match_operator ::= '@@'
+
+match_operator_expression ::= ( {function_expr} | {column_expr} ) match_operator <<expr '-1'>> {
+  mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.MatchOperatorExpressionMixin"
+  pin = 2
+}
+
+regex_match_operator ::= '~*' | '~' | '!~*' | '!~'
+
+regex_match_operator_expression ::= ( {function_expr} | {column_expr} ) regex_match_operator <<expr '-1'>> {
+  mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.RegExMatchOperatorExpressionMixin"
+  pin = 2
+}
 
 extension_stmt ::= create_sequence_stmt | copy_stdin | truncate_stmt | set_stmt | drop_sequence_stmt | alter_sequence_stmt | create_extension_stmt | drop_extension_stmt | alter_extension_stmt {
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlExtensionStmtImpl"
@@ -439,6 +466,15 @@ truncate_descendant ::= {table_name} ['*'] ( COMMA {table_name} ['*'] ) *
 truncate_option ::= truncate_option_identity | truncate_option_cascade
 truncate_option_identity ::= ( 'RESTART' | 'CONTINUE' ) 'IDENTITY'
 truncate_option_cascade ::=  'CASCADE' | 'RESTRICT'
+
+string_agg_stmt ::= 'string_agg' LP [ ALL | DISTINCT ] <<expr '-1'>> COMMA string_literal [ ORDER BY {ordering_term} ( COMMA {ordering_term} ) * ] RP
+[ 'FILTER' LP WHERE <<expr '-1'>> RP ] {
+}
+
+array_agg_stmt ::= 'array_agg' LP [ ALL | DISTINCT ] <<expr '-1'>> [ ORDER BY {ordering_term} ( COMMA {ordering_term} ) * ] RP
+[ 'FILTER' LP WHERE <<expr '-1'>> RP ] {
+ mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.AggregateExpressionMixin"
+}
 
 set_stmt ::= 'SET' [ ('SESSION' | 'LOCAL') ] ( set_config | set_timezone | set_schema | set_names | set_seed )
 set_value ::= literal_value | {identifier} | DEFAULT
