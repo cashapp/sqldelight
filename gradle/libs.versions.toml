@@ -15,6 +15,7 @@ compileSdk = "34"
 minSdk = "21"
 sqlPsi = "0.4.9"
 testContainers = "1.20.1"
+atomicfu = "0.23.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -80,6 +81,7 @@ objectDiff = { module = "de.danielbechler:java-object-diff", version = "0.95" }
 sqliter = { module = "co.touchlab:sqliter-driver", version.ref = "sqliter" }
 stately-concurrency = { module = "co.touchlab:stately-concurrency", version = "2.0.7" }
 
+atomicfu-plugin = { module = "org.jetbrains.kotlinx:atomicfu-gradle-plugin", version.ref = "atomicfu" }
 cache4k = "io.github.reactivecircus.cache4k:cache4k:0.13.0"
 
 testhelp = { module = "co.touchlab:testhelp", version = "0.6.12" }
@@ -113,3 +115,4 @@ changelog = { id = "org.jetbrains.changelog", version = "2.0.0" }
 shadow = { id = "com.github.johnrengelman.shadow", version = "8.1.1" }
 ksp = { id = "com.google.devtools.ksp", version = "1.9.25-1.0.20" }
 binaryCompatibilityValidator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version = "0.16.2" }
+atomicfu = { id = "kotlinx-atomicfu" }
