@@ -865,4 +865,67 @@ class PostgreSqlTest {
       assertThat(first()).isEqualTo("thomas")
     }
   }
+
+  @Test
+  fun testRankOver() {
+    database.windowFunctionsQueries.insert("t", 2)
+    database.windowFunctionsQueries.insert("q", 3)
+    database.windowFunctionsQueries.insert("p", 1)
+
+    with(database.windowFunctionsQueries.selectRank().executeAsList()) {
+      assertThat(first().name).isEqualTo("q")
+      assertThat(first().rank).isEqualTo(1)
+    }
+  }
+
+  @Test
+  fun testOver() {
+    database.windowFunctionsQueries.insert("a", 10)
+    database.windowFunctionsQueries.insert("b", 11)
+    database.windowFunctionsQueries.insert("c", 12)
+
+    with(database.windowFunctionsQueries.selectOver().executeAsList()) {
+      assertThat(first().name).isEqualTo("c")
+      assertThat(first().dense_rank).isEqualTo(1)
+      assertThat(first().row_num).isEqualTo(1)
+      assertThat(first().lag).isNull()
+      assertThat(first().lead).isEqualTo(11)
+      assertThat(first().ntile).isEqualTo(1)
+      assertThat(first().cume_dist).isEqualTo(0.3333333333333333)
+      assertThat(first().percent_rank).isEqualTo(0)
+    }
+  }
+
+  @Test
+  fun testBooleans() {
+    database.booleansQueries.insert(true)
+
+    with(database.booleansQueries.select().executeAsOne()) {
+      assertThat(expr).isTrue()
+      assertThat(expr_).isFalse()
+      assertThat(expr__).isFalse()
+      assertThat(expr___).isTrue()
+      assertThat(b).isTrue()
+    }
+  }
+
+  @Test
+  fun testAtTimeZone() {
+    val ts = LocalDateTime.of(2001, 2, 16, 20, 38, 40)
+    val tstz = OffsetDateTime.of(2001, 2, 16, 20, 38, 40, 0, ZoneOffset.ofHours(0))
+    database.timeZoneQueries.insert(ts, tstz)
+
+    with(database.timeZoneQueries.select(tstz, ts, "America/Chicago").executeAsOne()) {
+      assertThat(expr).isEqualTo(LocalDateTime.of(2024, 5, 9, 15, 28, 36))
+      assertThat(expr_).isEqualTo(OffsetDateTime.of(2001, 2, 17, 2, 38, 40, 0, ZoneOffset.ofHours(0)))
+      assertThat(expr__).isEqualTo(LocalDateTime.of(2001, 2, 16, 18, 38, 40))
+      assertThat(expr___).isEqualTo(OffsetDateTime.of(2001, 2, 17, 2, 38, 40, 0, ZoneOffset.ofHours(0)))
+      assertThat(expr____).isEqualTo(OffsetDateTime.of(2001, 2, 17, 2, 38, 40, 0, ZoneOffset.ofHours(0)))
+      assertThat(expr_____).isEqualTo(LocalDateTime.of(2001, 2, 16, 13, 38, 40))
+      assertThat(expr______).isGreaterThan(LocalDateTime.MIN)
+      assertThat(expr_______).isGreaterThan(LocalDateTime.MIN)
+      assertThat(expr________).isEqualTo(LocalDateTime.of(2001, 2, 16, 14, 38, 40))
+      assertThat(expr_________).isEqualTo(OffsetDateTime.of(2001, 2, 17, 2, 38, 40, 0, ZoneOffset.ofHours(0)))
+    }
+  }
 }

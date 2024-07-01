@@ -13,8 +13,10 @@
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ALL"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ALTER"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ALWAYS"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.AND"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.AS"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ASC"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.BETWEEN"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.BY"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.CASCADE"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.COLLATE"
@@ -55,6 +57,7 @@
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.LIMIT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.LP"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.MINUS"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.MULTIPLY"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.NO"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.NOT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.NOTHING"
@@ -63,11 +66,13 @@
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ON"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.OR"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ORDER"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.PARTITION"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.PLUS"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.PRIMARY"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.RENAME"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.REPLACE"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.ROLLBACK"
+    "static com.alecstrong.sql.psi.core.psi.SqlTypes.ROW"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.RP"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.SELECT"
     "static com.alecstrong.sql.psi.core.psi.SqlTypes.SET"
@@ -96,12 +101,15 @@ overrides ::= type_name
   | insert_stmt
   | update_stmt_limited
   | generated_clause
+  | result_column
   | alter_table_rules
   | compound_select_stmt
   | extension_expr
   | extension_stmt
   | create_index_stmt
   | select_stmt
+  | ordering_term
+  | literal_value
 
 column_constraint ::= [ CONSTRAINT {identifier} ] (
   PRIMARY KEY [ ASC | DESC ] {conflict_clause} |
@@ -118,7 +126,7 @@ column_constraint ::= [ CONSTRAINT {identifier} ] (
   override = true
 }
 
-current_timestamp_with_optional_interval ::= ( CURRENT_TIMESTAMP | 'NOW()' | interval_expression ) [ [ PLUS | MINUS ] interval_expression ] *
+current_timestamp_with_optional_interval ::= ( current_date_time_functions | 'NOW()' | interval_expression ) [ [ PLUS | MINUS ] interval_expression ] *
 default_constraint ::= [ NOT NULL | NULL ] DEFAULT (
   current_timestamp_with_optional_interval |
   {signed_number} |
@@ -218,6 +226,8 @@ tsvector_data_type ::= 'TSVECTOR'
 
 interval_expression ::= 'INTERVAL' string_literal
 
+timestamp_expression ::= 'TIMESTAMP' [ (WITH | WITHOUT) 'TIME' 'ZONE' ] {string_literal}
+
 with_clause_auxiliary_stmt ::= {compound_select_stmt} | delete_stmt_limited | insert_stmt | update_stmt_limited {
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlWithClauseAuxiliaryStmtImpl"
   implements = "com.alecstrong.sql.psi.core.psi.SqlWithClauseAuxiliaryStmt"
@@ -238,14 +248,21 @@ string_literal ::= string {
   override = true
 }
 
+precision_literal ::= ( '0' | '1' | '2' | '3' | '4' | '5' | '6' )
+current_date_time_functions ::= CURRENT_DATE
+  | 'CURRENT_TIME' [ LP precision_literal RP]
+  | 'CURRENT_TIMESTAMP' [ LP precision_literal RP]
+  | 'LOCALTIME' [ LP precision_literal RP]
+  | 'LOCALTIMESTAMP' [ LP precision_literal RP]
+
 literal_value ::= ( {numeric_literal}
                   | string_literal
                   | {blob_literal}
                   | NULL
-                  | CURRENT_TIME
-                  | CURRENT_DATE
-                  | CURRENT_TIMESTAMP
-                  | interval_expression ) {
+                  | boolean_literal
+                  | current_date_time_functions
+                  | interval_expression
+                  | timestamp_expression) {
   mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.LiteralValueMixin"
   implements = "com.alecstrong.sql.psi.core.psi.SqlLiteralValue"
   override = true
@@ -364,14 +381,47 @@ compound_select_stmt ::= [ {with_clause} ] {select_stmt}  ( {compound_operator} 
   override = true
 }
 
-extension_expr ::= regex_match_operator_expression | match_operator_expression | array_agg_stmt| string_agg_stmt | json_expression | boolean_literal | boolean_not_expression | window_function_expr {
+extension_expr ::= at_time_zone_operator_expression | regex_match_operator_expression | match_operator_expression | array_agg_stmt| string_agg_stmt | json_expression | boolean_not_expression | window_function_expr {
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlExtensionExprImpl"
   implements = "com.alecstrong.sql.psi.core.psi.SqlExtensionExpr"
   override = true
 }
 
-window_function_expr ::= {function_expr} 'WITHIN' GROUP LP ORDER BY <<expr '-1'>> ( COMMA <<expr '-1'>> ) * RP {
+window_function_expr ::= {function_expr}
+  ( ['FILTER' LP WHERE <<expr '-1'>> RP] 'OVER' ( window_defn | window_name) | 'WITHIN' GROUP LP ORDER BY <<expr '-1'>> ( COMMA <<expr '-1'>> ) * RP ) {
   mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.WindowFunctionMixin"
+}
+
+base_window_name ::= id
+window_name ::= id
+
+window_defn ::= LP [ base_window_name ]
+  [ PARTITION BY <<expr '-1'>> ( COMMA <<expr '-1'>> ) * ]
+  [ ORDER BY {ordering_term} ( COMMA {ordering_term} ) * ]
+  [ frame_spec ]
+RP {
+  pin = 1
+  mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.WindowDefinitionMixin"
+}
+
+frame_spec ::= ( 'RANGE' | 'ROWS' | 'GROUPS' )
+  (
+    BETWEEN (
+      'UNBOUNDED' 'PRECEDING' |
+      'CURRENT' ROW |
+      <<expr '-1'>> 'PRECEDING' |
+      <<expr '-1'>> 'FOLLOWING'
+    ) AND (
+      'UNBOUNDED' 'FOLLOWING' |
+      'CURRENT' ROW |
+      <<expr '-1'>> 'PRECEDING' |
+      <<expr '-1'>> 'FOLLOWING'
+    ) |
+    'UNBOUNDED' 'PRECEDING' |
+    'CURRENT' ROW |
+    <<expr '-1'>> 'PRECEDING'
+  ) [ 'EXCLUDE' NO 'OTHERS' | 'EXCLUDE' 'CURRENT' ROW | 'EXCLUDE' GROUP | 'EXCLUDE' 'TIES' ] {
+  pin = 1
 }
 
 boolean_not_expression ::= NOT (boolean_literal | {column_name})
@@ -399,7 +449,17 @@ regex_match_operator_expression ::= ( {function_expr} | {column_expr} ) regex_ma
   pin = 2
 }
 
-extension_stmt ::= create_sequence_stmt | copy_stdin | truncate_stmt | set_stmt | drop_sequence_stmt | alter_sequence_stmt | create_extension_stmt | drop_extension_stmt | alter_extension_stmt {
+at_time_zone_operator ::= 'AT' 'TIME' 'ZONE' <<expr '-1'>> {
+  mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.AtTimeZoneOperatorMixin"
+}
+
+at_time_zone_operator_expression ::= ( {literal_expr} | {cast_expr} | {function_expr} | {column_expr} ) at_time_zone_operator [ at_time_zone_operator ] *  {
+  mixin = "app.cash.sqldelight.dialects.postgresql.grammar.mixins.AtTimeZoneOperatorExpressionMixin"
+  pin = 2
+}
+
+extension_stmt ::= create_sequence_stmt | copy_stdin | truncate_stmt | set_stmt | drop_sequence_stmt |
+ alter_sequence_stmt | create_extension_stmt | drop_extension_stmt | alter_extension_stmt {
   extends = "com.alecstrong.sql.psi.core.psi.impl.SqlExtensionStmtImpl"
   implements = "com.alecstrong.sql.psi.core.psi.SqlExtensionStmt"
   override = true
@@ -488,3 +548,9 @@ set_timezone ::= 'TIME' 'ZONE'
 | 'LOCAL'
 | set_value
 )
+
+ordering_term ::= <<expr '-1'>> [ ASC | DESC ] [ 'NULLS' ( 'FIRST' | 'LAST' ) ] {
+  extends = "com.alecstrong.sql.psi.core.psi.impl.SqlOrderingTermImpl"
+  implements = "com.alecstrong.sql.psi.core.psi.SqlOrderingTerm"
+  override = true
+}
