@@ -387,6 +387,16 @@ class PostgreSqlTest {
     assertThat(now).isGreaterThan(OffsetDateTime.MIN)
   }
 
+  @Test fun testDateLiteral() {
+    val dateLiteral = database.datesQueries.selectDateLiteral().executeAsOne()
+    assertThat(dateLiteral).isEqualTo(LocalDate.of(2023, 5, 15))
+  }
+
+  @Test fun testTimeLiteral() {
+    val timeLiteral = database.datesQueries.selectTimeLiteral().executeAsOne()
+    assertThat(timeLiteral).isEqualTo(LocalTime.of(10, 30, 45, 0))
+  }
+
   @Test fun nowPlusInterval() {
     val selectNowInterval = database.datesQueries.selectNowInterval().executeAsOne()
     assertThat(selectNowInterval.now).isNotNull()
@@ -926,6 +936,95 @@ class PostgreSqlTest {
       assertThat(expr_______).isGreaterThan(LocalDateTime.MIN)
       assertThat(expr________).isEqualTo(LocalDateTime.of(2001, 2, 16, 14, 38, 40))
       assertThat(expr_________).isEqualTo(OffsetDateTime.of(2001, 2, 17, 2, 38, 40, 0, ZoneOffset.ofHours(0)))
+    }
+  }
+
+  @Test
+  fun testExtract() {
+    val sa = OffsetDateTime.of(2001, 2, 16, 19, 30, 0, 0, ZoneOffset.ofHours(0))
+    val ea = OffsetDateTime.of(2001, 2, 16, 20, 30, 0, 0, ZoneOffset.ofHours(0))
+    val cd = LocalDate.of(2001, 2, 16)
+
+    database.extractQueries.insert(sa, ea, cd)
+
+    with(database.extractQueries.select().executeAsOne()) {
+      assertThat(expr).isEqualTo(5)
+      assertThat(expr_).isEqualTo(2023)
+      assertThat(expr__).isEqualTo(93600)
+      assertThat(expr___).isEqualTo(20)
+      assertThat(expr____).isEqualTo(38)
+      assertThat(expr_____).isEqualTo(16)
+      assertThat(expr______).isEqualTo(5)
+      assertThat(expr_______).isEqualTo(10)
+      assertThat(expr________).isEqualTo(3)
+    }
+  }
+
+  @Test
+  fun testSelectLowerUpper() {
+    database.tsRangesQueries.insert(
+      """("2010-01-01 14:30:00+00","2010-01-01 15:30:00"]""",
+      """["2010-01-01 14:30:00+00","2010-01-01 15:30:00+00")""",
+    )
+
+    with(database.tsRangesQueries.selectLowerUpper().executeAsOne()) {
+      assertThat(begin_ts).isEqualTo(LocalDateTime.of(2010, 1, 1, 14, 30, 0))
+      assertThat(end_ts).isEqualTo(LocalDateTime.of(2010, 1, 1, 15, 30, 0))
+      assertThat(begin_tsz).isEqualTo(OffsetDateTime.of(2010, 1, 1, 14, 30, 0, 0, ZoneOffset.ofHours(0)))
+      assertThat(end_tsz).isEqualTo(OffsetDateTime.of(2010, 1, 1, 15, 30, 0, 0, ZoneOffset.ofHours(0)))
+      assertThat(expr).isEqualTo(60.0)
+    }
+  }
+
+  @Test
+  fun testSelectRangeFunction() {
+    database.tsRangesQueries.insert(
+      """("2010-01-01 14:30:00+00","2010-01-01 15:30:00"]""",
+      """["2010-01-01 14:30:00+00","2010-01-01 15:30:00+00")""",
+    )
+
+    with(database.tsRangesQueries.selectRangeFunction().executeAsOne()) {
+      assertThat(isempty).isFalse()
+      assertThat(lower_inc).isFalse()
+      assertThat(upper_inc).isTrue()
+      assertThat(lower_inf).isFalse()
+      assertThat(upper_inf).isFalse()
+      assertThat(range_merge).isEqualTo("""["2010-01-01 14:30:00+00","2010-01-01 15:30:00+00")""")
+    }
+  }
+
+  @Test
+  fun testSelectRangeContains() {
+    database.tsRangesQueries.insert(
+      """("2010-01-01 14:30:00+00","2010-01-01 15:30:00"]""",
+      """["2010-01-01 14:30:00+00","2010-01-01 15:30:00+00")""",
+    )
+    with(
+      database.tsRangesQueries.selectRangeContains().executeAsOne(),
+    ) {
+      assertThat(expr).isTrue()
+      assertThat(expr_).isTrue()
+    }
+  }
+
+  @Test
+  fun testSelectRangeOperators() {
+    database.tsRangesQueries.insert(
+      """("2010-01-01 14:30:00+00","2010-01-01 15:30:00"]""",
+      """["2010-01-01 14:30:00+00","2010-01-01 15:30:00+00")""",
+    )
+    with(
+      database.tsRangesQueries.selectRangeOperators().executeAsOne(),
+    ) {
+      assertThat(expr).isTrue()
+      assertThat(expr_).isFalse()
+      assertThat(expr__).isFalse()
+      assertThat(expr___).isTrue()
+      assertThat(expr____).isTrue()
+      assertThat(expr_____).isFalse()
+      assertThat(expr______).isEqualTo("""("2010-01-01 14:30:00","2010-01-01 15:30:00"]""")
+      assertThat(expr_______).isEqualTo("""("2010-01-01 14:30:00","2010-01-01 15:30:00"]""")
+      assertThat(expr________).isEqualTo("empty")
     }
   }
 }

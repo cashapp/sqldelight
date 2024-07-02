@@ -1,0 +1,30 @@
+CREATE TABLE TsRanges(
+  slot_ts TSRANGE NOT NULL,
+  slot_tsz TSTZRANGE
+);
+
+insert:
+INSERT INTO TsRanges (slot_ts, slot_tsz) VALUES(?, ?);
+
+selectLowerUpper:
+SELECT LOWER(slot_ts) AS begin_ts, UPPER(slot_ts) AS end_ts,
+LOWER(slot_tsz) AS begin_tsz, UPPER(slot_tsz) AS end_tsz,
+EXTRACT (epoch FROM UPPER(slot_ts) - LOWER(slot_ts)) / 60
+FROM TsRanges;
+
+selectRangeFunction:
+SELECT isempty(slot_ts),
+ lower_inc(slot_ts), upper_inc(slot_ts),
+ lower_inf(slot_ts), upper_inf(slot_ts),
+ range_merge(slot_tsz, slot_tsz)
+FROM TsRanges;
+
+selectRangeContains:
+SELECT slot_ts <@ slot_ts, slot_tsz @> slot_tsz
+FROM TsRanges;
+
+selectRangeOperators:
+SELECT slot_ts && slot_ts, slot_ts << slot_ts, slot_tsz >> slot_tsz,
+ slot_ts &> slot_ts, slot_tsz &< slot_tsz, slot_ts -|- slot_ts,
+ slot_ts * slot_ts, slot_ts + slot_ts, slot_tsz - slot_tsz
+FROM TsRanges;
