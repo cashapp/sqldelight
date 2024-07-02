@@ -19,6 +19,7 @@ import app.cash.sqldelight.dialects.postgresql.PostgreSqlType.TIMESTAMP
 import app.cash.sqldelight.dialects.postgresql.PostgreSqlType.TIMESTAMP_TIMEZONE
 import app.cash.sqldelight.dialects.postgresql.grammar.mixins.AggregateExpressionMixin
 import app.cash.sqldelight.dialects.postgresql.grammar.mixins.AtTimeZoneOperatorExpressionMixin
+import app.cash.sqldelight.dialects.postgresql.grammar.mixins.ExtractTemporalExpressionMixin
 import app.cash.sqldelight.dialects.postgresql.grammar.mixins.WindowFunctionMixin
 import app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlAtTimeZoneOperator
 import app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlDeleteStmtLimited
@@ -271,8 +272,8 @@ class PostgreSqlTypeResolver(private val parentResolver: TypeResolver) : TypeRes
     }
     is SqlLiteralExpr -> when {
       literalValue.text == "TRUE" || literalValue.text == "FALSE" -> IntermediateType(BOOLEAN)
-      literalValue.text == "CURRENT_DATE" -> IntermediateType(PostgreSqlType.DATE)
-      literalValue.text == "CURRENT_TIME" -> IntermediateType(PostgreSqlType.TIME)
+      literalValue.text == "CURRENT_DATE" || literalValue.text.startsWith("DATE ") -> IntermediateType(PostgreSqlType.DATE)
+      literalValue.text == "CURRENT_TIME" || literalValue.text.startsWith("TIME ") -> IntermediateType(PostgreSqlType.TIME)
       literalValue.text.startsWith("CURRENT_TIMESTAMP") -> IntermediateType(PostgreSqlType.TIMESTAMP_TIMEZONE)
       literalValue.text.startsWith("TIMESTAMP WITH TIME ZONE") -> IntermediateType(PostgreSqlType.TIMESTAMP_TIMEZONE)
       literalValue.text.startsWith("TIMESTAMP WITHOUT TIME ZONE") -> IntermediateType(TIMESTAMP)
@@ -309,6 +310,13 @@ class PostgreSqlTypeResolver(private val parentResolver: TypeResolver) : TypeRes
           if (acc.dialectType == TIMESTAMP) IntermediateType(TIMESTAMP_TIMEZONE) else IntermediateType(TIMESTAMP)
         } ?: if (timeStamp.dialectType == TIMESTAMP) IntermediateType(TIMESTAMP_TIMEZONE) else IntermediateType(TIMESTAMP)
       }
+      extractTemporalExpression != null -> {
+        val temporalExprType = (extractTemporalExpression as ExtractTemporalExpressionMixin).expr.postgreSqlType()
+        if (temporalExprType.dialectType !in temporalTypes) {
+          error("EXTRACT FROM requires a temporal type argument. The provided argument ${temporalExprType.dialectType} is not supported.")
+        }
+        IntermediateType(REAL).nullableIf(temporalExprType.javaType.isNullable)
+      }
       else -> parentResolver.resolvedType(this)
     }
 
@@ -327,6 +335,14 @@ class PostgreSqlTypeResolver(private val parentResolver: TypeResolver) : TypeRes
       SqlTypes.GTE,
       SqlTypes.LT,
       SqlTypes.LTE,
+    )
+
+    private val temporalTypes = listOf(
+      DATE,
+      PostgreSqlType.INTERVAL,
+      PostgreSqlType.TIMESTAMP_TIMEZONE,
+      PostgreSqlType.TIMESTAMP,
+      PostgreSqlType.TIME,
     )
 
     private fun arrayIntermediateType(type: IntermediateType): IntermediateType {
