@@ -1,10 +1,15 @@
 buildscript {
+  repositories {
+    mavenCentral()
+  }
   dependencies {
     classpath("com.squareup.okhttp3:okhttp") {
       version {
         strictly '4.4.1'
       }
     }
+
+    classpath(libs.atomicfu.plugin)
   }
 }
 
