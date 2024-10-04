@@ -2,28 +2,49 @@ package app.cash.sqldelight.multiplatform
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JsModuleKind
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
 import org.jetbrains.kotlin.konan.target.HostManager
 
+@OptIn(
+  ExperimentalKotlinGradlePluginApi::class,
+  ExperimentalWasmDsl::class,
+)
 class MultiplatformConventions : Plugin<Project> {
   override fun apply(project: Project) {
     project.plugins.apply("org.jetbrains.kotlin.multiplatform")
 
     (project.kotlinExtension as KotlinMultiplatformExtension).apply {
+      compilerOptions {
+        this.freeCompilerArgs.addAll(
+          "-Xexpect-actual-classes",
+        )
+      }
+
       jvm()
 
-      js {
-        browser {
+      listOf(js(), wasmJs()).forEach {
+        it.browser {
           testTask {
             it.useKarma {
               useChromeHeadless()
             }
           }
         }
-        compilerOptions {
+        it.compilerOptions {
           moduleKind.set(JsModuleKind.MODULE_UMD)
+        }
+      }
+
+      applyDefaultHierarchyTemplate {
+        common {
+          group("jsCommon") {
+            withJs()
+            withWasmJs()
+          }
         }
       }
 
