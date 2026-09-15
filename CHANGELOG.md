@@ -12,7 +12,7 @@
 
 ### Fixed
 
-- Nothing yet!
+- [Intellij Plugin] Improve stability when typing by trapping unhandled errors. (#6355 by @griffio)
 
 
 ## [2.4.0-rc2] - 2026-09-14
